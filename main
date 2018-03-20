@@ -1,0 +1,124 @@
+from time import sleep
+from appJar import gui
+from random import *
+
+winner = 0
+playersTurn = randint(1, 2)
+board = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+
+
+def isCorner(coords):
+    return [[0, 0], [1, 1], [2, 2], [0, 2], [2, 0]].count(coords)
+
+
+def dudMove():
+    return
+
+
+def move(lbl):
+    global playersTurn
+    coords = lbl.split(',')
+    coords = [int(coords[0]), int(coords[1])]
+
+    if app.getLabelBg(lbl) != "grey" or winner:
+        return
+
+    board[coords[0]][coords[1]] = playersTurn
+    app.setLabelRelief(lbl, 'sunken')
+
+    if playersTurn == 1:
+        app.setLabelBg(lbl, "blue")
+        checkWinner(coords)
+        playersTurn = 2
+    else:
+        app.setLabelBg(lbl, "red")
+        checkWinner(coords)
+        playersTurn = 1
+
+
+def diagonalWinner():
+    isWinnerB = 1
+    isWinnerF = 1
+
+    for counter, block in enumerate(range(0, 3)):
+        if board[block][block] != playersTurn:
+            isWinnerB = 0
+        if board[0 + counter][2 - counter] != playersTurn:
+            isWinnerF = 0
+
+    return isWinnerB or isWinnerF
+
+
+def reset():
+    global playersTurn, board, winner
+    playersTurn = randint(1, 2)
+    board = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+
+    for row in range(0, 3):
+        for col in range(0, 3):
+            labelName = str(row) + "," + str(col)
+            app.queueFunction(app.setLabelBg, labelName, "grey")
+            app.queueFunction(app.setLabelRelief, labelName, "raised")
+
+    sleep(1.75)
+    winner = 0
+
+
+def showWinner(player):
+    global winner
+    winner = 1
+
+    app.setLabel("Winner", "Player " + str(player) + " Wins")
+    app.setLabelFg("Winner", "white")
+
+    if player == 1:
+        app.setLabelBg("Winner", "blue")
+    else:
+        app.setLabelBg("Winner", "red")
+
+    sleep(2)
+
+    reset()
+
+
+def checkWinner(coords):
+    global playersTurn
+
+    if isCorner(coords):
+        if diagonalWinner():
+            app.thread(showWinner, playersTurn)
+            return
+
+    if board[coords[0]].count(playersTurn) == 3:
+        app.thread(showWinner, playersTurn)
+        return
+    else:
+        isWinner = 1
+        for row in range(0, 3):
+            if board[row][coords[1]] != playersTurn:
+                isWinner = 0
+                break
+
+        if isWinner:
+            app.thread(showWinner, playersTurn)
+
+
+# Building GUI
+app = gui("tic-tac-toe AI", "950x500")
+app.setSticky("nesw")
+
+for row in range(0, 3):
+    for col in range(0, 3):
+        labelName = str(row) + "," + str(col)
+        app.addLabel(labelName, "", row, col).config(font=("", "70", ""), back="grey",
+                                                     relief="raised", borderwidth="10")
+        app.setLabelSubmitFunction(labelName, move)
+
+app.addLabel("Stats", "Statistics:", 0, 3, 1, 2).config(font=("", "20", ""), back="purple",
+                                                        fore="white", relief="ridge", borderwidth="5")
+app.addLabel("Winner", "", 2, 3).config(font=("", "20", ""), back="black",
+                                                        fore="white", width="9", relief="ridge", borderwidth="5")
+app.setLabelAnchor("Stats", "nw")
+app.setLabelPadding("Stats", [10, 10])
+
+app.go()
